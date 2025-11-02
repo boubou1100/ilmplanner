@@ -9,47 +9,167 @@ class PlanningScreen extends ConsumerWidget {
   Future<void> _showNotificationSettings(BuildContext context, WidgetRef ref) async {
     final currentTime = ref.read(notificationTimeProvider);
 
-    final TimeOfDay? pickedTime = await showTimePicker(
+    showDialog(
       context: context,
-      initialTime: currentTime,
-    );
-
-    if (pickedTime != null && context.mounted) {
-      final newTime = TimeOfDay(hour: pickedTime.hour, minute: pickedTime.minute);
-      ref.read(notificationTimeProvider.notifier).state = newTime;
-
-      // Sauvegarder l'heure
-      final storage = ref.read(storageServiceProvider);
-      await storage.saveNotificationTime(newTime);
-
-      // Programmer les notifications
-      final readingPlan = ref.read(readingPlanProvider);
-      if (readingPlan != null) {
-        final notificationService = ref.read(notificationServiceProvider);
-        final dayPlansData = readingPlan.dayPlans.map((plan) => {
-          'day': plan.day,
-          'startPage': plan.startPage,
-          'endPage': plan.endPage,
-        }).toList();
-
-        await notificationService.scheduleAllNotifications(
-          hour: newTime.hour,
-          minute: newTime.minute,
-          dayPlans: dayPlansData,
-        );
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Notifications programmées à ${newTime.hour}h${newTime.minute.toString().padLeft(2, '0')}'
-              ),
-              backgroundColor: Colors.green,
+      builder: (context) => AlertDialog(
+        title: const Text('⏰ Notifications'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Heure actuelle: ${currentTime.hour}h${currentTime.minute.toString().padLeft(2, '0')}',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-          );
-        }
-      }
-    }
+            const SizedBox(height: 16),
+            const Text(
+              'Testez les notifications ou configurez l\'heure de rappel quotidien.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.science),
+            label: const Text('Tester'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final notificationService = ref.read(notificationServiceProvider);
+
+              try {
+                await notificationService.showNotification(
+                  title: '📚 Test de notification',
+                  body: 'Les notifications fonctionnent correctement ! 🎉',
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Notification de test envoyée !'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.list),
+            label: const Text('Voir les notifications'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final notificationService = ref.read(notificationServiceProvider);
+
+              try {
+                final pending = await notificationService.getPendingNotifications();
+
+                if (context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('📋 Notifications programmées'),
+                      content: pending.isEmpty
+                          ? const Text('Aucune notification programmée.')
+                          : SizedBox(
+                              width: double.maxFinite,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: pending.length,
+                                itemBuilder: (context, index) {
+                                  final notif = pending[index];
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      child: Text('${notif.id}'),
+                                    ),
+                                    title: Text(notif.title ?? 'Sans titre'),
+                                    subtitle: Text(notif.body ?? ''),
+                                    dense: true,
+                                  );
+                                },
+                              ),
+                            ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Fermer'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.schedule),
+            label: const Text('Configurer'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              final TimeOfDay? pickedTime = await showTimePicker(
+                context: context,
+                initialTime: currentTime,
+              );
+
+              if (pickedTime != null && context.mounted) {
+                final newTime = TimeOfDay(hour: pickedTime.hour, minute: pickedTime.minute);
+                ref.read(notificationTimeProvider.notifier).state = newTime;
+
+                // Sauvegarder l'heure
+                final storage = ref.read(storageServiceProvider);
+                await storage.saveNotificationTime(newTime);
+
+                // Programmer les notifications
+                final readingPlan = ref.read(readingPlanProvider);
+                if (readingPlan != null) {
+                  final notificationService = ref.read(notificationServiceProvider);
+                  final dayPlansData = readingPlan.dayPlans.map((plan) => {
+                    'day': plan.day,
+                    'startPage': plan.startPage,
+                    'endPage': plan.endPage,
+                  }).toList();
+
+                  await notificationService.scheduleAllNotifications(
+                    hour: newTime.hour,
+                    minute: newTime.minute,
+                    dayPlans: dayPlansData,
+                  );
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Notifications programmées à ${newTime.hour}h${newTime.minute.toString().padLeft(2, '0')}'
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
