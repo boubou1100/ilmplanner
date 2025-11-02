@@ -205,6 +205,7 @@
 // Version alternative avec flutter_pdfview
 // Plus stable et moins de problèmes de plugin
 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -225,6 +226,17 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   int _totalPages = 0;
   bool _isReady = false;
   PDFViewController? _pdfViewController;
+
+  final List<String> _congratulationMessages = [
+    'Masha Allah ! Vous avez terminé votre planning de lecture ! 🎉',
+    'Félicitations ! Vous avez accompli un grand objectif ! 🌟',
+    'Bravo ! Votre persévérance a porté ses fruits ! 💪',
+    'Qu\'Allah vous récompense pour vos efforts ! 🤲',
+    'Magnifique ! Vous avez atteint votre objectif ! 🎯',
+    'Excellent travail ! Votre détermination est exemplaire ! ✨',
+    'Subhan Allah ! Quel accomplissement remarquable ! 🏆',
+    'Vous avez réussi ! Qu\'Allah accepte vos efforts ! 🌙',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -452,22 +464,81 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentPage >= dayPlan.startPage - 1 && 
+      floatingActionButton: _currentPage >= dayPlan.startPage - 1 &&
                             _currentPage >= dayPlan.endPage - 1 &&
                             !isCompleted
           ? FloatingActionButton.extended(
-              onPressed: () {
+              onPressed: () async {
                 final newCompleted = Set<int>.from(completedDays);
                 newCompleted.add(widget.day);
                 ref.read(completedDaysProvider.notifier).state = newCompleted;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Jour ${widget.day} marqué comme lu ! 🎉'),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                // Sauvegarder les jours complétés
+                final storage = ref.read(storageServiceProvider);
+                await storage.saveCompletedDays(newCompleted);
+
+                // Vérifier si tous les jours sont complétés
+                final totalDays = readingPlan!.dayPlans.length;
+                final allCompleted = newCompleted.length == totalDays;
+
+                if (allCompleted && context.mounted) {
+                  // Afficher un message de félicitation aléatoire
+                  final random = Random();
+                  final congratsMessage = _congratulationMessages[
+                    random.nextInt(_congratulationMessages.length)
+                  ];
+
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AlertDialog(
+                      title: const Row(
+                        children: [
+                          Icon(Icons.celebration, color: Colors.amber, size: 32),
+                          SizedBox(width: 12),
+                          Expanded(child: Text('Félicitations !')),
+                        ],
+                      ),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            congratsMessage,
+                            style: Theme.of(context).textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Vous avez complété tous les $totalDays jours de votre planning !',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            context.go('/');
+                          },
+                          icon: const Icon(Icons.home),
+                          label: const Text('Retour à l\'accueil'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Jour ${widget.day} marqué comme lu ! 🎉'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
               backgroundColor: Colors.green,
               icon: const Icon(Icons.check),

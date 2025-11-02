@@ -9,6 +9,7 @@ class StorageService {
   static const String _numberOfDaysKey = 'number_of_days';
   static const String _completedDaysKey = 'completed_days';
   static const String _planningConfirmedKey = 'planning_confirmed';
+  static const String _planningNameKey = 'planning_name';
 
   // Sauvegarder le document PDF
   Future<void> savePdfDocument({
@@ -98,6 +99,18 @@ class StorageService {
     return prefs.getBool(_planningConfirmedKey) ?? false;
   }
 
+  // Sauvegarder le nom du planning
+  Future<void> savePlanningName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_planningNameKey, name);
+  }
+
+  // Charger le nom du planning
+  Future<String?> loadPlanningName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_planningNameKey);
+  }
+
   // Effacer toutes les données
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
@@ -109,6 +122,7 @@ class StorageService {
     await prefs.remove('notification_hour');
     await prefs.remove('notification_minute');
     await prefs.remove(_planningConfirmedKey);
+    await prefs.remove(_planningNameKey);
   }
 }
 
