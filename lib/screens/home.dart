@@ -83,7 +83,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PDF Reading Planner'),
+        title: const Text('Ilm Planner'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Center(
