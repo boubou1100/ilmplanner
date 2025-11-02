@@ -360,7 +360,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       Text(
-                        '${(((_currentPage + 1 - dayPlan.startPage) / dayPlan.totalPages) * 100).toInt()}%',
+                        '${(((_currentPage - dayPlan.startPage + 2) / dayPlan.totalPages) * 100).toInt()}%',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -369,7 +369,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
                   ),
                   const SizedBox(height: 4),
                   LinearProgressIndicator(
-                    value: (_currentPage + 1 - dayPlan.startPage) / dayPlan.totalPages,
+                    value: (_currentPage - dayPlan.startPage + 2) / dayPlan.totalPages,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation<Color>(
                       Theme.of(context).colorScheme.primary,
@@ -421,8 +421,17 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
                     _pdfViewController = controller;
                   },
                   onPageChanged: (page, total) {
+                    // Restreindre la navigation aux pages du jour uniquement
+                    if (page! < dayPlan.startPage - 1) {
+                      _pdfViewController?.setPage(dayPlan.startPage - 1);
+                      return;
+                    }
+                    if (page > dayPlan.endPage - 1) {
+                      _pdfViewController?.setPage(dayPlan.endPage - 1);
+                      return;
+                    }
                     setState(() {
-                      _currentPage = page!;
+                      _currentPage = page;
                     });
                   },
                   onError: (error) {

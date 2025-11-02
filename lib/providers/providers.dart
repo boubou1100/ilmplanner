@@ -34,11 +34,16 @@ final autoLoadProvider = FutureProvider<void>((ref) async {
   final storedTime = await storage.loadNotificationTime();
   ref.read(notificationTimeProvider.notifier).state =
       TimeOfDay(hour: storedTime.hour, minute: storedTime.minute);
+
+  // Charger l'état de confirmation du planning
+  final isConfirmed = await storage.loadPlanningConfirmed();
+  ref.read(isPlanningConfirmedProvider.notifier).state = isConfirmed;
 });
 
 final pdfDocumentProvider = StateProvider<PdfDocument?>((ref) => null);
 final numberOfDaysProvider = StateProvider<int>((ref) => 7);
 final completedDaysProvider = StateProvider<Set<int>>((ref) => {});
+final isPlanningConfirmedProvider = StateProvider<bool>((ref) => false);
 
 // ✅ Le provider utilise TimeOfDay (Flutter)
 final notificationTimeProvider = StateProvider<TimeOfDay>((ref) =>
