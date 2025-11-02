@@ -172,6 +172,58 @@ class PlanningScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _showDeleteConfirmation(BuildContext context, WidgetRef ref) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Confirmer la suppression'),
+          ],
+        ),
+        content: const Text(
+          'Êtes-vous sûr de vouloir supprimer ce planning ?\n\n'
+          'Cette action supprimera :\n'
+          '• Le document PDF\n'
+          '• Votre progression\n'
+          '• Toutes les notifications programmées\n\n'
+          'Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      // Effectuer la suppression
+      final storage = ref.read(storageServiceProvider);
+      final notification = ref.read(notificationServiceProvider);
+
+      await storage.clearAll();
+      await notification.cancelAllNotifications();
+
+      ref.read(pdfDocumentProvider.notifier).state = null;
+      ref.read(completedDaysProvider.notifier).state = {};
+
+      if (context.mounted) {
+        context.go('/');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final document = ref.watch(pdfDocumentProvider);
@@ -201,30 +253,22 @@ class PlanningScreen extends ConsumerWidget {
             onPressed: () => _showNotificationSettings(context, ref),
             tooltip: 'Configurer les notifications',
           ),
-          PopupMenuButton(
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'delete') {
+                _showDeleteConfirmation(context, ref);
+              }
+            },
             itemBuilder: (context) => [
-              PopupMenuItem(
-                child: const Row(
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
                   children: [
                     Icon(Icons.delete_outline, color: Colors.red),
                     SizedBox(width: 8),
                     Text('Supprimer le planning'),
                   ],
                 ),
-                onTap: () async {
-                  final storage = ref.read(storageServiceProvider);
-                  final notification = ref.read(notificationServiceProvider);
-
-                  await storage.clearAll();
-                  await notification.cancelAllNotifications();
-
-                  ref.read(pdfDocumentProvider.notifier).state = null;
-                  ref.read(completedDaysProvider.notifier).state = {};
-
-                  if (context.mounted) {
-                    context.go('/');
-                  }
-                },
               ),
             ],
           ),
