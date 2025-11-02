@@ -371,18 +371,85 @@ class PlanningScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () async {
-                    final storage = ref.read(storageServiceProvider);
-                    await storage.savePlanningConfirmed(true);
-                    ref.read(isPlanningConfirmedProvider.notifier).state = true;
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Planning enregistré ! Vous ne pourrez plus le modifier.'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 3),
+                    // Demander le nom du planning
+                    final TextEditingController nameController = TextEditingController();
+                    final planningName = await showDialog<String>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Nom du planning'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Donnez un nom à votre planning de lecture :',
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nom du planning',
+                                hintText: 'Ex: Coran Ramadan 2024',
+                                border: OutlineInputBorder(),
+                              ),
+                              autofocus: true,
+                              onSubmitted: (value) {
+                                if (value.trim().isNotEmpty) {
+                                  Navigator.of(context).pop(value.trim());
+                                }
+                              },
+                            ),
+                          ],
                         ),
-                      );
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Annuler'),
+                          ),
+                          FilledButton(
+                            onPressed: () {
+                              final name = nameController.text.trim();
+                              if (name.isNotEmpty) {
+                                Navigator.of(context).pop(name);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Veuillez entrer un nom'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text('Confirmer'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (planningName != null && context.mounted) {
+                      final storage = ref.read(storageServiceProvider);
+                      await storage.savePlanningConfirmed(true);
+                      await storage.savePlanningName(planningName);
+                      ref.read(isPlanningConfirmedProvider.notifier).state = true;
+                      ref.read(planningNameProvider.notifier).state = planningName;
+
+                      if (context.mounted) {
+                        // Retourner au home avec notification
+                        context.go('/');
+
+                        // Afficher la notification après le changement de route
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Planning "$planningName" enregistré avec succès ! 🎉'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        });
+                      }
                     }
                   },
                   icon: const Icon(Icons.save),
@@ -435,37 +502,53 @@ class PlanningScreen extends ConsumerWidget {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: InkWell(
-                      onTap: () => context.go('/reader/${dayPlan.day}'),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isCompleted
-                              ? Colors.green
-                              : Theme.of(context).colorScheme.primary,
-                          child: isCompleted
-                              ? const Icon(Icons.check, color: Colors.white)
-                              : Text('${dayPlan.day}', style: const TextStyle(color: Colors.white)),
-                        ),
-                        title: Text('Jour ${dayPlan.day}'),
-                        subtitle: Text(
-                          'Pages ${dayPlan.startPage} - ${dayPlan.endPage} (${dayPlan.totalPages} pages)',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Checkbox(
-                              value: isCompleted,
-                              onChanged: (value) async {
-                                final newCompleted = Set<int>.from(completedDays);
-                                value == true ? newCompleted.add(dayPlan.day) : newCompleted.remove(dayPlan.day);
+                      onTap: isPlanningConfirmed
+                          ? () => context.go('/reader/${dayPlan.day}')
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Veuillez d\'abord enregistrer le planning pour accéder à la lecture'),
+                                  backgroundColor: Colors.orange,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                      child: Opacity(
+                        opacity: isPlanningConfirmed ? 1.0 : 0.6,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isCompleted
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.primary,
+                            child: isCompleted
+                                ? const Icon(Icons.check, color: Colors.white)
+                                : Text('${dayPlan.day}', style: const TextStyle(color: Colors.white)),
+                          ),
+                          title: Text('Jour ${dayPlan.day}'),
+                          subtitle: Text(
+                            'Pages ${dayPlan.startPage} - ${dayPlan.endPage} (${dayPlan.totalPages} pages)',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: isCompleted,
+                                onChanged: isPlanningConfirmed ? (value) async {
+                                  final newCompleted = Set<int>.from(completedDays);
+                                  value == true ? newCompleted.add(dayPlan.day) : newCompleted.remove(dayPlan.day);
 
-                                ref.read(completedDaysProvider.notifier).state = newCompleted;
+                                  ref.read(completedDaysProvider.notifier).state = newCompleted;
 
-                                final storage = ref.read(storageServiceProvider);
-                                await storage.saveCompletedDays(newCompleted);
-                              },
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
+                                  final storage = ref.read(storageServiceProvider);
+                                  await storage.saveCompletedDays(newCompleted);
+                                } : null,
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: isPlanningConfirmed ? null : Colors.grey,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

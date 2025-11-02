@@ -80,6 +80,7 @@ class HomeScreen extends ConsumerWidget {
     final pdfDocument = ref.watch(pdfDocumentProvider);
     final numberOfDays = ref.watch(numberOfDaysProvider);
     final completedDays = ref.watch(completedDaysProvider);
+    final planningName = ref.watch(planningNameProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +97,7 @@ class HomeScreen extends ConsumerWidget {
                   pdfDocument,
                   numberOfDays,
                   completedDays,
+                  planningName,
                 )
               : _buildNewPlanningView(context, ref),
         ),
@@ -146,6 +148,7 @@ class HomeScreen extends ConsumerWidget {
     PdfDocument document,
     int numberOfDays,
     Set<int> completedDays,
+    String? planningName,
   ) {
     final progress = completedDays.length / numberOfDays;
 
@@ -174,23 +177,52 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.picture_as_pdf,
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          document.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_stories,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              planningName ?? document.name,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          ),
+                        ],
                       ),
+                      if (planningName != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const SizedBox(width: 36),
+                            Icon(
+                              Icons.picture_as_pdf,
+                              color: Colors.grey[600],
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                document.name,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                   const Divider(height: 24),
