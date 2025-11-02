@@ -28,7 +28,8 @@ class PlanningScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton.icon(
+          // Bouton de test commenté
+          /* TextButton.icon(
             icon: const Icon(Icons.science),
             label: const Text('Tester'),
             onPressed: () async {
@@ -61,7 +62,7 @@ class PlanningScreen extends ConsumerWidget {
                 }
               }
             },
-          ),
+          ), */
           TextButton.icon(
             icon: const Icon(Icons.list),
             label: const Text('Voir les notifications'),
@@ -217,6 +218,7 @@ class PlanningScreen extends ConsumerWidget {
 
       ref.read(pdfDocumentProvider.notifier).state = null;
       ref.read(completedDaysProvider.notifier).state = {};
+      ref.read(isPlanningConfirmedProvider.notifier).state = false;
 
       if (context.mounted) {
         context.go('/');
@@ -231,6 +233,7 @@ class PlanningScreen extends ConsumerWidget {
     final readingPlan = ref.watch(readingPlanProvider);
     final completedDays = ref.watch(completedDaysProvider);
     final notificationTime = ref.watch(notificationTimeProvider);
+    final isPlanningConfirmed = ref.watch(isPlanningConfirmedProvider);
 
     if (document == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -316,7 +319,16 @@ class PlanningScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Nombre de jours :', style: Theme.of(context).textTheme.titleMedium),
+                Row(
+                  children: [
+                    Text('Nombre de jours :', style: Theme.of(context).textTheme.titleMedium),
+                    if (isPlanningConfirmed)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.lock, size: 16, color: Colors.grey),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -327,7 +339,7 @@ class PlanningScreen extends ConsumerWidget {
                         max: 30,
                         divisions: 29,
                         label: numberOfDays.toString(),
-                        onChanged: (value) async {
+                        onChanged: isPlanningConfirmed ? null : (value) async {
                           ref.read(numberOfDaysProvider.notifier).state = value.toInt();
                           ref.read(completedDaysProvider.notifier).state = {};
 
@@ -350,6 +362,38 @@ class PlanningScreen extends ConsumerWidget {
               ],
             ),
           ),
+
+          // Bouton Enregistrer le planning (visible seulement si non confirmé)
+          if (!isPlanningConfirmed)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final storage = ref.read(storageServiceProvider);
+                    await storage.savePlanningConfirmed(true);
+                    ref.read(isPlanningConfirmedProvider.notifier).state = true;
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Planning enregistré ! Vous ne pourrez plus le modifier.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('Enregistrer le planning'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: Colors.green,
+                  ),
+                ),
+              ),
+            ),
 
           const Divider(),
 
