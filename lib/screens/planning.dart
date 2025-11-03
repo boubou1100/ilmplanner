@@ -181,7 +181,7 @@ class PlanningScreen extends ConsumerWidget {
           children: [
             Icon(Icons.warning, color: Colors.orange),
             SizedBox(width: 8),
-            Text('Confirmer la suppression'),
+            Text('Supression'),
           ],
         ),
         content: const Text(

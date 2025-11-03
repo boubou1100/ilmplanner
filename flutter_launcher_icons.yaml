@@ -5,7 +5,7 @@ flutter_launcher_icons:
   android: "ic_laucher"
   image_path_android: "assets/icons/icon_without_title.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
-  adaptive_icon_background: "#ffd88a"
+  adaptive_icon_background: "#ffffff"
   # adaptive_icon_foreground: "assets/icon/foreground.png"
   # adaptive_icon_monochrome: "assets/icon/monochrome.png"
  
@@ -19,5 +19,5 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/icons/icon_without_title.png"
-    background_color: "#ffd88a"
-    theme_color: "#ffd88a"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
