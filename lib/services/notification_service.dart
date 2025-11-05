@@ -131,6 +131,62 @@ class NotificationService {
     );
   }
 
+  // Programmer UNE SEULE notification quotidienne
+  Future<void> scheduleSingleDailyReminder({
+    required int hour,
+    required int minute,
+  }) async {
+    await initialize();
+    await cancelAllNotifications();
+
+    final now = DateTime.now();
+    var scheduledDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    // Si l'heure est déjà passée aujourd'hui, programmer pour demain
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    const androidDetails = AndroidNotificationDetails(
+      'daily_reading_channel',
+      'Rappels de lecture',
+      channelDescription: 'Notification quotidienne pour votre planning de lecture',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.zonedSchedule(
+      0, // ID unique pour la notification quotidienne
+      '📚 Rappel de lecture',
+      'C\'est l\'heure de votre lecture quotidienne !',
+      tzScheduledDate,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time, // Répéter quotidiennement
+    );
+  }
+
   // Programmer toutes les notifications pour le planning
   Future<void> scheduleAllNotifications({
     required int hour,
