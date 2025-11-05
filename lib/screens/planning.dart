@@ -138,32 +138,23 @@ class PlanningScreen extends ConsumerWidget {
                 final storage = ref.read(storageServiceProvider);
                 await storage.saveNotificationTime(newTime);
 
-                // Programmer les notifications
-                final readingPlan = ref.read(readingPlanProvider);
-                if (readingPlan != null) {
-                  final notificationService = ref.read(notificationServiceProvider);
-                  final dayPlansData = readingPlan.dayPlans.map((plan) => {
-                    'day': plan.day,
-                    'startPage': plan.startPage,
-                    'endPage': plan.endPage,
-                  }).toList();
+                // Programmer la notification quotidienne unique
+                final notificationService = ref.read(notificationServiceProvider);
 
-                  await notificationService.scheduleAllNotifications(
-                    hour: newTime.hour,
-                    minute: newTime.minute,
-                    dayPlans: dayPlansData,
-                  );
+                await notificationService.scheduleSingleDailyReminder(
+                  hour: newTime.hour,
+                  minute: newTime.minute,
+                );
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Notifications programmées à ${newTime.hour}h${newTime.minute.toString().padLeft(2, '0')}'
-                        ),
-                        backgroundColor: Colors.green,
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Notification quotidienne programmée à ${newTime.hour}h${newTime.minute.toString().padLeft(2, '0')}'
                       ),
-                    );
-                  }
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                 }
               }
             },
@@ -432,6 +423,14 @@ class PlanningScreen extends ConsumerWidget {
                       await storage.savePlanningName(planningName);
                       ref.read(isPlanningConfirmedProvider.notifier).state = true;
                       ref.read(planningNameProvider.notifier).state = planningName;
+
+                      // Programmer la notification quotidienne avec l'heure par défaut
+                      final notificationTime = ref.read(notificationTimeProvider);
+                      final notificationService = ref.read(notificationServiceProvider);
+                      await notificationService.scheduleSingleDailyReminder(
+                        hour: notificationTime.hour,
+                        minute: notificationTime.minute,
+                      );
 
                       if (context.mounted) {
                         // Retourner au home avec notification
