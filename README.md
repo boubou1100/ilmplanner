@@ -2,6 +2,29 @@
 
 A new Flutter project.
 
+## Configuration initiale
+
+Avant d'ouvrir le projet dans Xcode ou de compiler, exécutez les commandes suivantes :
+
+```bash
+# 1. Installer les dépendances Flutter
+flutter pub get
+
+# 2. Installer les dépendances CocoaPods pour iOS
+cd ios
+pod install
+cd ..
+
+# 3. (Optionnel) Pour macOS, installer les dépendances
+cd macos
+pod install
+cd ..
+```
+
+**Important** : Ces étapes sont nécessaires pour générer les fichiers de configuration requis par Xcode. Sans cela, vous rencontrerez l'erreur "unable to initiate PIF transfer session".
+
+Pour plus de détails sur le dépannage, consultez [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
 
 
 
