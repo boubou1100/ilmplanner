@@ -36,6 +36,14 @@ class HomeScreen extends ConsumerWidget {
           totalPages: totalPages,
         );
 
+        // Sauvegarder le PDF dans SharedPreferences pour la persistance
+        final storage = ref.read(storageServiceProvider);
+        await storage.savePdfDocument(
+          path: path,
+          name: name,
+          totalPages: totalPages,
+        );
+
         if (context.mounted) {
           context.go('/planning');
         }
